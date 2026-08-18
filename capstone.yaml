@@ -1,0 +1,8 @@
+run: docker compose up --build -d
+seed: python -m src.database.seed
+test: pytest test/ -v
+base_url: http://localhost:8000
+endpoints:
+  - /meter
+  - /usage
+  - /webhooks/stripe
