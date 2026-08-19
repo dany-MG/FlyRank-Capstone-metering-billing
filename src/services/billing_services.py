@@ -74,3 +74,14 @@ def get_usage_summary(db: Session, tenant_id: int) -> dict:
             "limit": tenant.plan.ai_tokens_limit
         }
     }
+
+def upgrading_to_pro(db: Session, stipe_customer_id: str):
+    tenant = db.query(Tenant).filter(Tenant.stripe_customer_id == stipe_customer_id).first()
+    if not tenant:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+
+    if tenant:
+        tenant.plan_id = 2  # Assuming plan_id 2 corresponds to the Pro plan
+        db.commit()
+        return True
+    return False

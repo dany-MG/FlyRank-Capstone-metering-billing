@@ -1,5 +1,8 @@
 from fastapi import FastAPI
-from src.api.routes import metering_route
+from src.api.routes import metering_route, webhook_route
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 app = FastAPI(
     title = "Usage Metering & Billing API",
@@ -8,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(metering_route.router)
+app.include_router(webhook_route.router)
 
 @app.get("/health", tags=["Health Check"])
 def health_check():
