@@ -22,9 +22,6 @@ def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
     elif event.usage_type == "ai_tokens" and (current_usage + event.usage_amount) > tenant.plan.ai_tokens_limit:
         raise HTTPException(status_code = status.HTTP_402_PAYMENT_REQUIRED, detail="AI tokens limit exceeded")
     
-    else:
-        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail="Invalid usage type")
-
     new_event = UsageEvent(
         tenant_id = event.tenant_id,
         usage_type = event.usage_type,
@@ -48,3 +45,32 @@ def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
             message = "Duplicate idempotency key. This event has already been recorded.",
             event_id = None
         )
+
+
+def get_usage_summary(db: Session, tenant_id: int) -> dict:
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+    
+    api_calls_used = db.query(func.sum(UsageEvent.usage_amount)).filter(
+        UsageEvent.tenant_id == tenant_id,
+        UsageEvent.usage_type == "api_calls"
+    ).scalar() or 0
+
+    ai_tokens_used = db.query(func.sum(UsageEvent.usage_amount)).filter(
+        UsageEvent.tenant_id == tenant_id,
+        UsageEvent.usage_type == "ai_tokens"
+    ).scalar() or 0
+
+    return {
+        "tenant_id": tenant.id,
+        "plan_id": tenant.plan_id,
+        "api_calls": {
+            "used": api_calls_used,
+            "limit": tenant.plan.api_calls_limit
+        },
+        "ai_tokens": {
+            "used": ai_tokens_used,
+            "limit": tenant.plan.ai_tokens_limit
+        }
+    }

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.database.database import get_db
-from src.services.billing_services import record_usage_event
-from src.models.schemas import MeterEventInput, MeterEventOutput
+from src.services.billing_services import record_usage_event, get_usage_summary
+from src.models.schemas import MeterEventInput, MeterEventOutput, UsageSummary
 
-router = APIRouter(prefix="/meter", tags="[Metering]")
+router = APIRouter(prefix="/meter", tags=["Metering"])
 
 @router.post("/event", response_model = MeterEventOutput)
 def meter_usage(event: MeterEventInput, db: Session = Depends(get_db)):
@@ -20,4 +20,13 @@ def meter_usage(event: MeterEventInput, db: Session = Depends(get_db)):
     """
     return record_usage_event(db, event)
 
+@router.get("/usage/{tenant_id}", response_model = UsageSummary)
+def get_usage(tenant_id: int, db:Session = Depends(get_db)):
+    """
+    Retrieve the current usage summary for a specific tenant.
     
+    - **tenant_id**: The unique identifier of the tenant.
+    
+    Returns the total API calls and AI tokens used by the tenant, along with their respective limits based on the tenant's plan.
+    """
+    return get_usage_summary(db, tenant_id)

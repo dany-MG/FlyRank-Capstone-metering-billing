@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey. UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
@@ -12,7 +12,7 @@ class Plan(Base):
 
 class Tenant(Base):
     __tablename__ = "tenants"
-    id = Columns(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
     stripe_customer_id = Column(String, nullable=False, unique=True, index=True)
     
