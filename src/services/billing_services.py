@@ -48,4 +48,3 @@ def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
             message = "Duplicate idempotency key. This event has already been recorded.",
             event_id = None
         )
-
