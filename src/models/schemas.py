@@ -16,7 +16,7 @@ class MeterEventInput(BaseModel):
 class MeterEventOutput(BaseModel):
     status : str
     message : str
-    event_id : int
+    event_id : Optional[int] = None
 
 class UsageDetail(BaseModel):
     used: int

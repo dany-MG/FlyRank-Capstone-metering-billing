@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.database.database import get_db
-from src.services.billing_services import record_usage_event, get_usage_summary
+from src.services.billing_services import record_usage_event, get_usage_summary, calculate_monthly_pricing
 from src.models.schemas import MeterEventInput, MeterEventOutput, UsageSummary
 
 router = APIRouter(prefix="/meter", tags=["Metering"])
@@ -30,3 +30,14 @@ def get_usage(tenant_id: int, db:Session = Depends(get_db)):
     Returns the total API calls and AI tokens used by the tenant, along with their respective limits based on the tenant's plan.
     """
     return get_usage_summary(db, tenant_id)
+
+@router.get("/invoice/{tenant_id}")
+def get_invoice(tenant_id: int, db: Session = Depends(get_db)):
+    """
+    Calculate the monthly pricing for a specific tenant based on their usage and plan.
+    
+    - **tenant_id**: The unique identifier of the tenant.
+    
+    Returns the total amount to be billed for the tenant for the current month.
+    """
+    return calculate_monthly_pricing(db, tenant_id)

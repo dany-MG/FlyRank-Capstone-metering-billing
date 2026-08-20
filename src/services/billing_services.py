@@ -4,6 +4,7 @@ from sqlalchemy import func
 from fastapi import HTTPException, status
 from src.models.models import Tenant, UsageEvent
 from src.models.schemas import MeterEventInput, MeterEventOutput
+from src.core.pricing import PRICES
 
 def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
     # Check if the tenant exists
@@ -45,10 +46,13 @@ def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
         )
     except IntegrityError:
         db.rollback()
+        existing_event = db.query(UsageEvent).filter(
+            UsageEvent.idempotency_key == event.idempotency_key
+        ).first()
         return MeterEventOutput(
             status = "error",
             message = "Duplicate idempotency key. This event has already been recorded.",
-            event_id = None
+            event_id = existing_event.id if existing_event else None
         )
 
 
@@ -97,3 +101,38 @@ def upgrading_to_pro(db: Session, stipe_customer_id: str):
         db.commit()
         return True
     return False
+
+def calculate_monthly_pricing(db: Session, tenant_id: int) -> dict:
+    api_calls = db.query(func.sum(UsageEvent.usage_amount)).filter(
+        UsageEvent.tenant_id == tenant_id,
+        UsageEvent.usage_type == "api_calls"
+    ).scalar() or 0
+
+    cached_tokens = db.query(func.sum(UsageEvent.cached_tokens)).filter(
+        UsageEvent.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    reasoning_tokens = db.query(func.sum(UsageEvent.reasoning_tokens)).filter(
+        UsageEvent.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    output_tokens = db.query(func.sum(UsageEvent.output_tokens)).filter(
+        UsageEvent.tenant_id == tenant_id
+    ).scalar() or 0
+
+    cost_api = (api_calls / 1000) * PRICES["api_calls"]
+    cost_cached = (cached_tokens / 1000) * PRICES["ai_input_cached"]
+    cost_reasoning = (reasoning_tokens / 1000) * PRICES["ai_reasoning"]
+    cost_output = (output_tokens / 1000) * PRICES["ai_output"]
+    total_cost = cost_api + cost_cached + cost_reasoning + cost_output
+
+    return {
+        "tenant_id": tenant_id,
+        "breakdown": {
+            "api_calls_cost": round(cost_api, 4),
+            "cached_tokens_cost": round(cost_cached, 4),
+            "reasoning_tokens_cost": round(cost_reasoning, 4),
+            "output_tokens_cost": round(cost_output, 4)
+        },
+        "total_due_usd" : round(total_cost, 4)
+    }
