@@ -21,7 +21,8 @@ Key features:
 ## 2. ARCHITECTURE DIAGRAM
 -----------------------------------------------------------------------
 The following shows the data flow between components:
-`
+```text
+
                              +-----------------------+
                              |                       |
    [ POST /meter/event ] --->|    FASTAPI SERVER     |---> [ INSERT / UPDATE ]
@@ -40,7 +41,8 @@ The following shows the data flow between components:
                                                                  |
    [ GET /invoice/{id} ] ----------------------------------------+
    (Mathematical roll-up)
-`
+   
+```
 
 ## 3. SETUP INSTRUCTIONS
 -----------------------------------------------------------------------
