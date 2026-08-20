@@ -22,11 +22,16 @@ def record_usage_event(db: Session, event: MeterEventInput) -> MeterEventOutput:
     elif event.usage_type == "ai_tokens" and (current_usage + event.usage_amount) > tenant.plan.ai_tokens_limit:
         raise HTTPException(status_code = status.HTTP_402_PAYMENT_REQUIRED, detail="AI tokens limit exceeded")
     
+    breakdown = event.token_breakdown
+
     new_event = UsageEvent(
         tenant_id = event.tenant_id,
         usage_type = event.usage_type,
         usage_amount = event.usage_amount,
-        idempotency_key = event.idempotency_key
+        idempotency_key = event.idempotency_key,
+        cached_tokens = event.token_breakdown.cached_input if breakdown else 0,
+        reasoning_tokens = event.token_breakdown.reasoning if breakdown else 0,
+        output_tokens = event.token_breakdown.output if breakdown else 0
     )
     db.add(new_event)
 
@@ -62,6 +67,10 @@ def get_usage_summary(db: Session, tenant_id: int) -> dict:
         UsageEvent.usage_type == "ai_tokens"
     ).scalar() or 0
 
+    cached_used = db.query(func.sum(UsageEvent.cached_tokens)).filter(UsageEvent.tenant_id == tenant_id).scalar() or 0
+    reasoning_used = db.query(func.sum(UsageEvent.reasoning_tokens)).filter(UsageEvent.tenant_id == tenant_id).scalar() or 0
+    output_used = db.query(func.sum(UsageEvent.output_tokens)).filter(UsageEvent.tenant_id == tenant_id).scalar() or 0
+
     return {
         "tenant_id": tenant.id,
         "plan_id": tenant.plan_id,
@@ -71,7 +80,10 @@ def get_usage_summary(db: Session, tenant_id: int) -> dict:
         },
         "ai_tokens": {
             "used": ai_tokens_used,
-            "limit": tenant.plan.ai_tokens_limit
+            "limit": tenant.plan.ai_tokens_limit,
+            "cached_used": cached_used,
+            "reasoning_used": reasoning_used,
+            "output_used": output_used
         }
     }
 

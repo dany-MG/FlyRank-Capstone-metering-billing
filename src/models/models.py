@@ -33,6 +33,9 @@ class UsageEvent(Base):
     usage_amount = Column(Integer, nullable=False)
     idempotency_key = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    cached_tokens = Column(Integer, default=0)
+    reasoning_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
 
     __table_args__ = (
         UniqueConstraint('tenant_id', 'idempotency_key', name='uix_tenant_idempotency'),

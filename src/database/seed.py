@@ -12,7 +12,7 @@ def seed_database():
         db.add(pro_plan)
         
         
-        tenant_test = Tenant(id=1, plan_id=1, stripe_customer_id="cus_V6ENwelBDFzjj2")
+        tenant_test = Tenant(id=1, plan_id=1, stripe_customer_id="cus_test_123")
         db.add(tenant_test)
         db.commit()
         print("Database seeded successfully.")
